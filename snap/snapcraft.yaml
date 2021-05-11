@@ -7,6 +7,12 @@ description: |
   discriminator tap audio and synthesize the decoded speech.
   Speech synthesis requires mbelib, which is a separate package.
 
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+  - build-on: i386
+  - build-on: ppc64el
+
 grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 
