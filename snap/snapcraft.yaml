@@ -18,22 +18,59 @@ confinement: strict # use 'strict' once you have the right plugs and slots
 apps:
   dsd:
     command: bin/dsd
+    command-chain: ["snap/command-chain/alsa-launch"]
+    environment: 
+      PA_ALSA_PLUGHW: 1
     plugs:
       - audio-playback
       - pulseaudio
       - alsa
 
 parts:
+  alsa-mixin:
+    plugin: dump
+    source: https://github.com/diddlesnaps/snapcraft-alsa.git
+    source-subdir: snapcraft-assets
+    build-packages:
+      - libasound2-dev
+    stage-packages:
+      - libasound2
+      - libasound2-plugins
+      - yad
+    stage:
+      # restrict to only audio-related files - you need to ensure
+      # that gtk3 is staged for yad to work correctly, to prompt
+      # users to connect the alsa plug or proceed with pulseaudio.
+      #
+      # This helps prevent symbol conflicts in situations where
+      # you're using a non-default library, such as those that the
+      # gnome-3-34 extension for core18 provides.
+      - etc/asound.conf
+      - snap/command-chain/alsa-launch
+      - usr/bin/yad*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libasound*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libdnsfile*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libFLAC*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjack*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libpulse*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libsamplerate*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libspeex*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libvorbis*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
   mbelib:
     plugin: cmake
     source: https://github.com/szechyjs/mbelib.git
+    after: [alsa-mixin]
   dsd:
     plugin: cmake
     source: https://github.com/szechyjs/dsd.git
-    after: [mbelib]
+    after: [mbelib, alsa-mixin]
     build-packages:
       - libitpp-dev
       - libsndfile1-dev
+      - portaudio19-dev
+      - libportaudiocpp0
     stage-packages:
       - libfftw3-double3
       - libflac8
@@ -46,3 +83,17 @@ parts:
       - libvorbis0a
       - libvorbisenc2
       - libblas3
+      - libportaudio2
+      - libportaudiocpp0
+    filesets:
+      exclusion:
+      - "-usr/lib/x86_64-linux-gnu/libjack.so.0"
+      - "-usr/lib/x86_64-linux-gnu/libjackserver.so.0"
+    prime:
+      - "$exclusion"
+
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib
+  /usr/share/alsa:
+    bind: $SNAP/usr/share/alsa
